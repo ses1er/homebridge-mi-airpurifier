@@ -7,18 +7,18 @@ var Accessory, PlatformAccessory, Service, Characteristic, UUIDGen;
 
 MiAirPurifier2 = function(platform, config) {
     this.init(platform, config);
-    
+
     Accessory = platform.Accessory;
     PlatformAccessory = platform.PlatformAccessory;
     Service = platform.Service;
     Characteristic = platform.Characteristic;
     UUIDGen = platform.UUIDGen;
-    
-    this.device = new miio.Device({
+
+    this.device = new miio.device({
         address: this.config['ip'],
         token: this.config['token']
     });
-    
+
     this.accessories = {};
     if(!this.config['airPurifierDisable'] && this.config['airPurifierName'] && this.config['airPurifierName'] != "" && this.config['silentModeSwitchName'] && this.config['silentModeSwitchName'] != "") {
         this.accessories['airPurifierAccessory'] = new MiAirPurifier2AirPurifierAccessory(this);
@@ -39,9 +39,9 @@ MiAirPurifier2 = function(platform, config) {
         this.accessories['airQualityAccessory'] = new MiAirPurifier2AirQualityAccessory(this);
     }
     var accessoriesArr = this.obj2array(this.accessories);
-    
+
     this.platform.log.debug("[MiAirPurifierPlatform][DEBUG]Initializing " + this.config["type"] + " device: " + this.config["ip"] + ", accessories size: " + accessoriesArr.length);
-    
+
     return accessoriesArr;
 }
 inherits(MiAirPurifier2, Base);
@@ -70,25 +70,25 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
     if(!this.silentModeSwitchDisable) {
         services.push(silentModeSwitch);
     }
-    
+
     var airPurifierService = new Service.AirPurifier(this.name);
     var activeCharacteristic = airPurifierService.getCharacteristic(Characteristic.Active);
     var currentAirPurifierStateCharacteristic = airPurifierService.getCharacteristic(Characteristic.CurrentAirPurifierState);
     var targetAirPurifierStateCharacteristic = airPurifierService.getCharacteristic(Characteristic.TargetAirPurifierState);
     var lockPhysicalControlsCharacteristic = airPurifierService.addCharacteristic(Characteristic.LockPhysicalControls);
     var rotationSpeedCharacteristic = airPurifierService.addCharacteristic(Characteristic.RotationSpeed);
-    
+
     var currentTemperatureCharacteristic = airPurifierService.addCharacteristic(Characteristic.CurrentTemperature);
 	var currentRelativeHumidityCharacteristic = airPurifierService.addCharacteristic(Characteristic.CurrentRelativeHumidity);
     var pm25DensityCharacteristic = airPurifierService.addCharacteristic(Characteristic.PM2_5Density);
     var airQualityCharacteristic = airPurifierService.addCharacteristic(Characteristic.AirQuality);
     services.push(airPurifierService);
-    
+
     silentModeOnCharacteristic
         .on('get', function(callback) {
             that.device.call("get_prop", ["mode"]).then(result => {
                 that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2AirPurifierAccessory - SilentModeSwitch - getOn: " + result);
-                
+
                 if(result[0] === "silent") {
                     callback(null, true);
                 } else {
@@ -107,7 +107,7 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
                     if(result[0] === "ok") {
                         targetAirPurifierStateCharacteristic.updateValue(Characteristic.TargetAirPurifierState.AUTO);
                         callback(null);
-                        
+
                         if(Characteristic.Active.INACTIVE == activeCharacteristic.value) {
                             activeCharacteristic.updateValue(Characteristic.Active.ACTIVE);
                             currentAirPurifierStateCharacteristic.updateValue(Characteristic.CurrentAirPurifierState.PURIFYING_AIR);
@@ -137,12 +137,12 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
                 }
             }
         }.bind(this));
-    
+
     activeCharacteristic
         .on('get', function(callback) {
             that.device.call("get_prop", ["mode"]).then(result => {
                 that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2AirPurifierAccessory - Active - getActive: " + result);
-                
+
                 if(result[0] === "idle") {
                     callback(null, Characteristic.Active.INACTIVE);
                 } else {
@@ -184,12 +184,12 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
                 callback(err);
             });
         }.bind(this));
-       
+
     currentAirPurifierStateCharacteristic
         .on('get', function(callback) {
             that.device.call("get_prop", ["mode"]).then(result => {
                 that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2AirPurifierAccessory - CurrentAirPurifierState - getCurrentAirPurifierState: " + result);
-                
+
                 if(result[0] === "idle") {
                     callback(null, Characteristic.CurrentAirPurifierState.INACTIVE);
                 } else {
@@ -224,12 +224,12 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
                 callback(err);
             });
         }.bind(this));
-        
+
     targetAirPurifierStateCharacteristic
         .on('get', function(callback) {
             that.device.call("get_prop", ["mode"]).then(result => {
                 that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2AirPurifierAccessory - TargetAirPurifierState - getTargetAirPurifierState: " + result);
-                
+
                 if(result[0] === "favorite") {
                     callback(null, Characteristic.TargetAirPurifierState.MANUAL);
                 } else {
@@ -270,7 +270,7 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
                 callback(err);
             });
         }.bind(this));
-    
+
     rotationSpeedCharacteristic
         .on('get', function(callback) {
             that.device.call("get_prop", ["favorite_level"]).then(result => {
@@ -338,7 +338,7 @@ MiAirPurifier2AirPurifierAccessory.prototype.getServices = function() {
 			this.device.call("get_prop", ["aqi"]).then(result => {
                 that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2AirPurifierAccessory - aqi - getHumidity: " + result);
                 callback(null, result[0]);
-                
+
                 var airQualityValue = Characteristic.AirQuality.UNKNOWN;
                 if(result[0] <= 50) {
                     airQualityValue = Characteristic.AirQuality.EXCELLENT;
@@ -404,13 +404,13 @@ MiAirPurifier2TemperatureAccessory.prototype.getServices = function() {
         .setCharacteristic(Characteristic.Model, "AirPurifier2")
         .setCharacteristic(Characteristic.SerialNumber, "Undefined");
     services.push(infoService);
-    
+
     var temperatureService = new Service.TemperatureSensor(this.name);
     temperatureService
         .getCharacteristic(Characteristic.CurrentTemperature)
         .on('get', this.getTemperature.bind(this))
     services.push(temperatureService);
-    
+
     return services;
 }
 
@@ -440,7 +440,7 @@ MiAirPurifier2HumidityAccessory.prototype.getServices = function() {
         .setCharacteristic(Characteristic.Model, "AirPurifier2")
         .setCharacteristic(Characteristic.SerialNumber, "Undefined");
     services.push(infoService);
-    
+
     var humidityService = new Service.HumiditySensor(this.name);
     humidityService
         .getCharacteristic(Characteristic.CurrentRelativeHumidity)
@@ -476,7 +476,7 @@ MiAirPurifier2BuzzerSwitchAccessory.prototype.getServices = function() {
         .setCharacteristic(Characteristic.Model, "AirPurifier2")
         .setCharacteristic(Characteristic.SerialNumber, "Undefined");
     services.push(infoService);
-    
+
     var switchService = new Service.Switch(this.name);
     switchService
         .getCharacteristic(Characteristic.On)
@@ -529,11 +529,11 @@ MiAirPurifier2LEDBulbAccessory.prototype.getServices = function() {
         .setCharacteristic(Characteristic.Model, "AirPurifier2")
         .setCharacteristic(Characteristic.SerialNumber, "Undefined");
     services.push(infoService);
-    
+
     var switchLEDService = new Service.Lightbulb(this.name);
     var onCharacteristic = switchLEDService.getCharacteristic(Characteristic.On);
     var brightnessCharacteristic = switchLEDService.addCharacteristic(Characteristic.Brightness);
-    
+
     onCharacteristic
         .on('get', function(callback) {
             this.device.call("get_prop", ["led_b"]).then(result => {
@@ -612,14 +612,14 @@ MiAirPurifier2AirQualityAccessory = function(dThis) {
 MiAirPurifier2AirQualityAccessory.prototype.getServices = function() {
     var that = this;
     var services = [];
-    
+
     var infoService = new Service.AccessoryInformation();
     infoService
         .setCharacteristic(Characteristic.Manufacturer, "XiaoMi")
         .setCharacteristic(Characteristic.Model, "AirPurifier2")
         .setCharacteristic(Characteristic.SerialNumber, "Undefined");
     services.push(infoService);
-    
+
     var pmService = new Service.AirQualitySensor(this.name);
     var pm2_5Characteristic = pmService.addCharacteristic(Characteristic.PM2_5Density);
     pmService
@@ -627,9 +627,9 @@ MiAirPurifier2AirQualityAccessory.prototype.getServices = function() {
         .on('get', function(callback) {
             that.device.call("get_prop", ["aqi"]).then(result => {
                 that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2AirQualityAccessory - AirQuality - getAirQuality: " + result);
-                
+
                 pm2_5Characteristic.updateValue(result[0]);
-                
+
                 if(result[0] <= 50) {
                     callback(null, Characteristic.AirQuality.EXCELLENT);
                 } else if(result[0] > 50 && result[0] <= 100) {
