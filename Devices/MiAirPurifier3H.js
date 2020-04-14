@@ -10,7 +10,7 @@ MiAirPurifier3H = function(platform, config) {
   this.init(platform, config);
 
   Accessory = platform.Accessory;
-  PlatformAccessory = platform.PlatformAccessory;ø
+  PlatformAccessory = platform.PlatformAccessory;
   Service = platform.Service;
   Characteristic = platform.Characteristic;
   UUIDGen = platform.UUIDGen;
