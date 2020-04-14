@@ -2,6 +2,7 @@ require('./Devices/MiAirPurifier2');
 require('./Devices/MiAirPurifier');
 require('./Devices/MiAirPurifierPro');
 require('./Devices/MiAirPurifier2S');
+require('./Devices/MiAirPurifier3H');
 
 var fs = require('fs');
 var packageFile = require("./package.json");
@@ -11,7 +12,7 @@ module.exports = function(homebridge) {
     if(!isConfig(homebridge.user.configPath(), "platforms", "MiAirPurifierPlatform")) {
         return;
     }
-    
+
     PlatformAccessory = homebridge.platformAccessory;
     Accessory = homebridge.hap.Accessory;
     Service = homebridge.hap.Service;
@@ -39,7 +40,7 @@ function isConfig(configFile, type, name) {
         }
     } else {
     }
-    
+
     return false;
 }
 
@@ -47,20 +48,20 @@ function MiAirPurifierPlatform(log, config, api) {
     if(null == config) {
         return;
     }
-    
+
     this.Accessory = Accessory;
     this.PlatformAccessory = PlatformAccessory;
     this.Service = Service;
     this.Characteristic = Characteristic;
     this.UUIDGen = UUIDGen;
-    
+
     this.log = log;
     this.config = config;
 
     if (api) {
         this.api = api;
     }
-    
+
     this.log.info("[MiAirPurifierPlatform][INFO]*******************************************************************");
     this.log.info("[MiAirPurifierPlatform][INFO]          MiAirPurifierPlatform v%s By YinHang", packageFile.version);
     this.log.info("[MiAirPurifierPlatform][INFO]  GitHub: https://github.com/YinHangCode/homebridge-mi-airpurifier ");
@@ -83,7 +84,7 @@ MiAirPurifierPlatform.prototype = {
                 if(null == deviceCfg['token'] || "" == deviceCfg['token'] || null == deviceCfg['ip'] || "" == deviceCfg['ip']) {
                     continue;
                 }
-                
+
                 if (deviceCfg['type'] == "MiAirPurifier") {
                     new MiAirPurifier(this, deviceCfg).forEach(function(accessory, index, arr){
                         myAccessories.push(accessory);
@@ -100,12 +101,16 @@ MiAirPurifierPlatform.prototype = {
                     new MiAirPurifier2S(this, deviceCfg).forEach(function(accessory, index, arr){
                         myAccessories.push(accessory);
                     });
+                } else if (deviceCfg['type'] == "MiAirPurifier3H") {
+                    new MiAirPurifier3H(this, deviceCfg).forEach(function(accessory, index, arr){
+                        myAccessories.push(accessory);
+                    });
                 } else {
                 }
             }
             this.log.info("[MiAirPurifierPlatform][INFO]device size: " + deviceCfgs.length + ", accessories size: " + myAccessories.length);
         }
-        
+
         callback(myAccessories);
     }
 }
