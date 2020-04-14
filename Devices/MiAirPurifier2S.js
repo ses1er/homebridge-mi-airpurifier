@@ -18,7 +18,9 @@ MiAirPurifier2S = function(platform, config) {
   this.device = new miio.device({
       address: this.config['ip'],
       token: this.config['token']
-  });
+  })
+  .then(device => this.platform.log.info('Connected to ', device))
+  .catch(err => this.platform.log.error('ERROR connecting to ', device));
 
   if (this.config['mqtt']) {
     this.platform.log.debug("[MiAirPurifierPlatform][DEBUG] MQTT is enabled");
@@ -109,9 +111,9 @@ MiAirPurifier2SAirPurifierAccessory.prototype.getServices = function() {
   }
   silentModeOnCharacteristic
     .on('get', function(callback) {
-      that.device.call("get_prop", ["mode"]).then(result => {
+      that.device.mode().then(result => {
         that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - SilentModeSwitch - getOn: " + result);
-        if(result[0] === "silent") {
+        if(result === "silent") {
           callback(null, true);
         } else {
           callback(null, false);
@@ -124,12 +126,11 @@ MiAirPurifier2SAirPurifierAccessory.prototype.getServices = function() {
     .on('set', function(value, callback) {
       that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - SilentModeSwitch - setOn: " + value);
       if(value) {
-        that.device.call("set_mode", ["silent"]).then(result => {
+        that.device.setMode("silent").then(result => {
           that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - SilentModeSwitch - setOn Result: " + result);
+          targetAirPurifierStateCharacteristic.updateValue(Characteristic.TargetAirPurifierState.AUTO);
           if(result[0] === "ok") {
-            targetAirPurifierStateCharacteristic.updateValue(Characteristic.TargetAirPurifierState.AUTO);
             callback(null);
-
             if(Characteristic.Active.INACTIVE == activeCharacteristic.value) {
               activeCharacteristic.updateValue(Characteristic.Active.ACTIVE);
               currentAirPurifierStateCharacteristic.updateValue(Characteristic.CurrentAirPurifierState.PURIFYING_AIR);
@@ -145,7 +146,7 @@ MiAirPurifier2SAirPurifierAccessory.prototype.getServices = function() {
         if(Characteristic.Active.INACTIVE == activeCharacteristic.value) {
           callback(null);
         } else {
-          that.device.call("set_mode", [Characteristic.TargetAirPurifierState.AUTO == targetAirPurifierStateCharacteristic.value ? "auto" : "favorite"]).then(result => {
+          that.device.setMode(Characteristic.TargetAirPurifierState.AUTO == targetAirPurifierStateCharacteristic.value ? "auto" : "favorite").then(result => {
             that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - SilentModeSwitch - setOn Result: " + result);
             if(result[0] === "ok") {
               callback(null);
@@ -162,9 +163,9 @@ MiAirPurifier2SAirPurifierAccessory.prototype.getServices = function() {
 
   activeCharacteristic
     .on('get', function(callback) {
-      that.device.call("get_prop", ["power"]).then(result => {
+      that.device.power().then(result => {
         that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - Active - getActive: " + result);
-        if(result[0] === "off") {
+        if(result === false) {
           callback(null, Characteristic.Active.INACTIVE);
         } else {
           callback(null, Characteristic.Active.ACTIVE);
@@ -176,14 +177,14 @@ MiAirPurifier2SAirPurifierAccessory.prototype.getServices = function() {
     }.bind(this))
     .on('set', function(value, callback) {
       that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - Active - setActive: " + value);
-      that.device.call("set_power", [value ? "on" : "off"]).then(result => {
+      that.device.setPower(value ? "on" : "off").then(result => {
         that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - Active - setActive Result: " + result);
         if(result[0] === "ok") {
           currentAirPurifierStateCharacteristic.updateValue(Characteristic.CurrentAirPurifierState.IDLE);
           callback(null);
           if(value) {
             currentAirPurifierStateCharacteristic.updateValue(Characteristic.CurrentAirPurifierState.PURIFYING_AIR);
-            that.device.call("get_prop", ["mode"]).then(result => {
+            that.device.mode().then(result => {
               if(result[0] === "silent") {
                 silentModeOnCharacteristic.updateValue(true);
               } else {
@@ -208,10 +209,10 @@ MiAirPurifier2SAirPurifierAccessory.prototype.getServices = function() {
 
   currentAirPurifierStateCharacteristic
     .on('get', function(callback) {
-      that.device.call("get_prop", ["power"]).then(result => {
+      that.device.power().then(result => {
         that.platform.log.debug("[MiAirPurifierPlatform][DEBUG]MiAirPurifier2SAirPurifierAccessory - CurrentAirPurifierState - getCurrentAirPurifierState: " + result);
 
-        if(result[0] === "off") {
+        if(result === false) {
           callback(null, Characteristic.CurrentAirPurifierState.INACTIVE);
         } else {
           callback(null, Characteristic.CurrentAirPurifierState.PURIFYING_AIR);
