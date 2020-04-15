@@ -22,7 +22,7 @@
     "homebridge": ">=0.4.1"
   },
   "dependencies": {
-    "miio": "kstasik/miio#feature/air-purifier-3-support",
+    "miio": "ses1er/miio#2s-3h",
     "mqtt": "^3.0.0"
   }
 }
